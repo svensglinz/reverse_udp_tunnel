@@ -72,11 +72,11 @@ int run_outside(const struct args* args) {
 
         // check if signal is keepalive init
         if (bytes_recv == LEN_KEEPALIVE_MAC && strncmp(((struct mac_t *)buffer)->check, "KAS", 3) == 0) {
-
             if (!verify_mac((const struct mac_t*)buffer, args->secret)) {
                 LOG(DEBUG, "received unverifiable keepalive signal from %s:%d", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
                 goto unlock;
             }
+            LOG(INFO_1, "received keeepalive\n");
 
             // check if this is a new free tunnel
             if (!conn_table_is_tunnel(conn_tbl, &client_addr)) {

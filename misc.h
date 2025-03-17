@@ -2,6 +2,7 @@
 #define UDP_REVERSE_MISC_H
 
 #include <time.h>
+#include <stdio.h>
 
 #define ERROR (0)
 #define INFO_1 (1)

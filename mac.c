@@ -24,7 +24,6 @@ int verify_mac(const struct mac_t* msg, const char* secret) {
     return memcmp(hash, msg->hash, 32) == 0 ? 1 : 0;
 }
 
-
 void gen_mac(struct mac_t *mac, const char *secret) {
 
     static uint64_t nonce = 1;

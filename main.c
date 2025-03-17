@@ -5,10 +5,13 @@
 #include "inside.h"
 #include "outside.h"
 #include "args.h"
+#include "misc.h"
 
 #define DEFAULT_MAX_CONNECTIONS 20
 #define DEFAULT_CONN_TIMEOUT 120
 #define DEFAULT_KEEPALIVE_INTERVAL 30
+#define DEFAULT_LOG_LEVEL 2
+#define DEFAULT_SECRET "default"
 
 int user_log_level;
 
@@ -27,10 +30,12 @@ int main(int argc, char** argv) {
      */
 
    struct args *a = parse_args(argc, argv);
-
    // set log level
+    if (a->log_level == 0) {
+        user_log_level = DEFAULT_LOG_LEVEL;
+    } else {
    user_log_level = a->log_level;
-
+    }
    /*
     if (a->udp_timeout == 0) {
         a->udp_timeout = DEFAULT_T;
@@ -49,6 +54,10 @@ int main(int argc, char** argv) {
 
     if (a->max_connections == 0) {
             a->max_connections = DEFAULT_MAX_CONNECTIONS;
+    }
+
+    if (a->secret == NULL) {
+        a->secret = DEFAULT_SECRET;
     }
 
    // start inside or outside tunnel
