@@ -1,0 +1,2 @@
+cc = gcc
+LFLAGS = gcc
