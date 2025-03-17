@@ -1,0 +1,14 @@
+#!/sbin/openrc-run
+
+name="reverse-udp-tunnel"
+description="reverse-udp-tunnel (inside)"
+command="/usr/local/bin/reverse-udp-tunnel"
+command-args="-s localhost:51850 -o sglinz.ddns.net:7777 -k "reverse-udp-tunnel-secret1234 -n 10 --keepaliveInterval 20 --logLevel 2 --connectionTimeout 60"
+pidfile="run/${name}.pid"
+
+depend() {
+after network
+}
+
+
+
