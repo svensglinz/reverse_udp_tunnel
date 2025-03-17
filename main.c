@@ -62,13 +62,12 @@ int main(int argc, char** argv) {
 
    // start inside or outside tunnel
    // DEFINE STANDARF VALUES HERE TO CHECK IF SOME ARE NULL
-    if (a->inside_addr && a->outside_addr && !a->outside_listen && !a->outside_listen) {
+    if (a->inside_addr && a->outside_addr && !a->outside_listen) {
         if (a->udp_timeout == 0) {
             a->udp_timeout = DEFAULT_CONN_TIMEOUT;
         }
         run_inside(a);
     } else if (a->outside_listen && !a->inside_addr && !a->outside_addr && !a->udp_timeout){
-
         run_outside(a);
     } else {
         print_usage("udp-reverse");

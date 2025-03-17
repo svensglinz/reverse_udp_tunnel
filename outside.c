@@ -67,7 +67,7 @@ int run_outside(const struct args* args) {
 
         // receiving from listening address
         bytes_recv = recvfrom(outside_sock, buffer, BUFF_SIZE, 0, (struct sockaddr *)&client_addr, &client_len);
-        //printf("received %d bytes\n", bytes_recv);
+        printf("received %d bytes\n", bytes_recv);
         pthread_mutex_lock(&lock);
 
         // check if signal is keepalive init
