@@ -89,7 +89,7 @@ int run_outside(const struct args* args) {
             } else {
                 // keepalive is from a tunnel that is currently active (ie. associated with a client)
                 // update last ping time
-                printf("received keepalive\n");
+                //printf("received keepalive\n");
                 conn_table_update_last_ping(conn_tbl, &client_addr);
             }
             goto unlock;
