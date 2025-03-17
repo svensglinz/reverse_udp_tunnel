@@ -67,7 +67,7 @@ int run_outside(const struct args* args) {
 
         // receiving from listening address
         bytes_recv = recvfrom(outside_sock, buffer, BUFF_SIZE, 0, (struct sockaddr *)&client_addr, &client_len);
-        printf("received %d bytes\n", bytes_recv);
+        //printf("received %d bytes\n", bytes_recv);
         pthread_mutex_lock(&lock);
 
         // check if signal is keepalive init
@@ -91,6 +91,8 @@ int run_outside(const struct args* args) {
                 // update last ping time
                 //printf("received keepalive\n");
                 conn_table_update_last_ping(conn_tbl, &client_addr);
+                // return 1 byte acknowledgement (check in in to not forward)
+                sendto(outside_sock, buffer, 1, 0, (struct sockaddr *)&client_addr, sizeof(client_addr));
             }
             goto unlock;
         }
@@ -98,7 +100,7 @@ int run_outside(const struct args* args) {
         // traffic is from an established tunnel from the inside
         // send traffic back to the associated client
         if ((conn = conn_table_get_client_for_tunnel(conn_tbl, &client_addr))) {
-            printf("sending back to client\n");
+            //printf("sending back to client\n");
             sendto(outside_sock, buffer, bytes_recv, 0, (struct sockaddr *)conn, sizeof(*conn));
             goto unlock;
         }
@@ -106,7 +108,7 @@ int run_outside(const struct args* args) {
         // outside traffic from client and we have an established tunnel
         // forward the traffic into the tunnel
         if ((conn = conn_table_get_tunnel_for_client(conn_tbl, &client_addr))) {
-            printf("sending into tunnel\n");
+            //printf("sending into tunnel\n");
             sendto(outside_sock, buffer, bytes_recv, 0, (struct sockaddr *)conn, sizeof(*conn));
             goto unlock;
         }

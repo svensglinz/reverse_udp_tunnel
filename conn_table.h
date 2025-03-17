@@ -104,7 +104,10 @@ struct conn_table* conn_table_init(int max_elem);
 struct conn_table_inside* conn_table_inside_init();
 
 /**
+ * update time of last recepit of keepalive signal from an inside tunnel
  *
+ * @param[in] tbl table to update
+ * @param[in] addr address for which last ping should be updated
  */
 void conn_table_update_last_ping(struct conn_table *tbl, struct sockaddr_in *addr);
 

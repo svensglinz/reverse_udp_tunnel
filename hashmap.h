@@ -85,7 +85,12 @@ void* hashmap_get(struct hashmap* map, void* key);
 int hashmap_remove(struct hashmap* map, void* key);
 
 /**
- * shrink,...
+ * shrinks the hashmap to a load factor of just below 0.75 if
+ * the current load factor is < 0.25
+ *
+ * @param[in] map map to shrink
+ * @retval 0 criteria for shrinking were met and map was shrunk
+ * @retval -1 criteria for shrinking were not met and map was not changed
  */
 int hashmap_shrink(struct hashmap *map);
 
