@@ -133,8 +133,10 @@ int run_inside(struct args *args) {
         int sock = events[i].data.fd;
 
         ssize_t bytes_recv = recvfrom(sock, buffer, BUFF_SIZE, 0, (struct sockaddr *)&client, &client_size);
+        printf("reveived %d bytes\n", bytes_recv);
         // traffic is from service application
-        if (memcmp(&client.sin_addr, &service_addr.sin_addr, sizeof(service_addr.sin_addr)) == 0) {
+        if (client.sin_addr.s_addr == service_addr.sin_addr.s_addr && client.sin_port == service_addr.sin_port) {
+          printf("sendint to outside\n");
             sendto(sock, buffer, bytes_recv, 0, (const struct sockaddr *)&outside_addr, sizeof(outside_addr));
             continue;
         }
@@ -154,6 +156,7 @@ int run_inside(struct args *args) {
 
         // send traffic to service application and update last connection
         conn_table_inside_update_last_ping(conn_tbl, sock);
+        printf("sending to service application\n");
         sendto(sock, buffer, bytes_recv, 0, (const struct sockaddr *)&service_addr, sizeof(service_addr));
     }
   }
@@ -184,7 +187,7 @@ void *send_keepalive(void *args) {
 
         gen_mac(&mac, prog_args->secret);
         sendto(fd, &mac, sizeof(mac), 0, (const struct sockaddr *)&outside_addr, sizeof(outside_addr));
-
+        printf("sending keepalive\n");
         // wait 50ms until sending out next ping to reduce probability of packages
         // arriving out of order
         cur = cur->next;

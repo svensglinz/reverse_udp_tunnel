@@ -67,7 +67,7 @@ int run_outside(const struct args* args) {
 
         // receiving from listening address
         bytes_recv = recvfrom(outside_sock, buffer, BUFF_SIZE, 0, (struct sockaddr *)&client_addr, &client_len);
-
+        printf("received %d bytes\n", bytes_recv);
         pthread_mutex_lock(&lock);
 
         // check if signal is keepalive init
@@ -76,8 +76,6 @@ int run_outside(const struct args* args) {
                 LOG(DEBUG, "received unverifiable keepalive signal from %s:%d", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
                 goto unlock;
             }
-            LOG(INFO_1, "received keeepalive\n");
-
             // check if this is a new free tunnel
             if (!conn_table_is_tunnel(conn_tbl, &client_addr)) {
 
@@ -91,6 +89,7 @@ int run_outside(const struct args* args) {
             } else {
                 // keepalive is from a tunnel that is currently active (ie. associated with a client)
                 // update last ping time
+                printf("received keepalive\n");
                 conn_table_update_last_ping(conn_tbl, &client_addr);
             }
             goto unlock;
@@ -99,6 +98,7 @@ int run_outside(const struct args* args) {
         // traffic is from an established tunnel from the inside
         // send traffic back to the associated client
         if ((conn = conn_table_get_client_for_tunnel(conn_tbl, &client_addr))) {
+            printf("sending back to client\n");
             sendto(outside_sock, buffer, bytes_recv, 0, (struct sockaddr *)conn, sizeof(*conn));
             goto unlock;
         }
@@ -106,6 +106,7 @@ int run_outside(const struct args* args) {
         // outside traffic from client and we have an established tunnel
         // forward the traffic into the tunnel
         if ((conn = conn_table_get_tunnel_for_client(conn_tbl, &client_addr))) {
+            printf("sending into tunnel\n");
             sendto(outside_sock, buffer, bytes_recv, 0, (struct sockaddr *)conn, sizeof(*conn));
             goto unlock;
         }

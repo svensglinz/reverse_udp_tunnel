@@ -207,7 +207,6 @@ void conn_table_inside_clean(struct conn_table_inside *tbl, int epoll_fd, time_t
             struct map_fd_time * s = (struct map_fd_time *)cur->elem;
             if (time_cur - s->val >= max_keepalive) {
                 next = cur->next;
-
                 epoll_ctl(epoll_fd, EPOLL_CTL_DEL, s->key, NULL); // maybe instead of null need epoll event ?
                 close(s->key);
                 hashmap_remove(map, cur->elem);
