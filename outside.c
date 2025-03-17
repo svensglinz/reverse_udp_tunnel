@@ -30,7 +30,7 @@ int run_outside(const struct args* args) {
 
    // initialize global variables
     pthread_mutex_init(&lock, NULL);
-    conn_tbl = conn_table_init();
+    conn_tbl = conn_table_init(args->max_connections);
     prog_args = args;
 
     // create main entry socket
@@ -89,7 +89,7 @@ int run_outside(const struct args* args) {
             } else {
                 // keepalive is from a tunnel that is currently active (ie. associated with a client)
                 // update last ping time
-                //printf("received keepalive\n");
+                printf("received keepalive\n");
                 conn_table_update_last_ping(conn_tbl, &client_addr);
             }
             goto unlock;
@@ -98,7 +98,7 @@ int run_outside(const struct args* args) {
         // traffic is from an established tunnel from the inside
         // send traffic back to the associated client
         if ((conn = conn_table_get_client_for_tunnel(conn_tbl, &client_addr))) {
-            //printf("sending back to client\n");
+            printf("sending back to client\n");
             sendto(outside_sock, buffer, bytes_recv, 0, (struct sockaddr *)conn, sizeof(*conn));
             goto unlock;
         }
@@ -106,7 +106,7 @@ int run_outside(const struct args* args) {
         // outside traffic from client and we have an established tunnel
         // forward the traffic into the tunnel
         if ((conn = conn_table_get_tunnel_for_client(conn_tbl, &client_addr))) {
-            //printf("sending into tunnel\n");
+            printf("sending into tunnel\n");
             sendto(outside_sock, buffer, bytes_recv, 0, (struct sockaddr *)conn, sizeof(*conn));
             goto unlock;
         }

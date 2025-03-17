@@ -65,7 +65,7 @@ struct map_addr_pair {
     uint64_t last_activity;
 };
 
-struct conn_table* conn_table_init() {
+struct conn_table* conn_table_init(int max_elem) {
 
     struct hashmap_params params = {
         .obj_size = sizeof(struct map_addr_pair),
@@ -79,6 +79,7 @@ struct conn_table* conn_table_init() {
     tbl->tunnel_to_client = tunnel_to_client;
     tbl->client_to_tunnel = client_to_tunnel;
     tbl->n_elem = 0;
+    tbl->max_elem = max_elem;
 
     return tbl;
 }
@@ -133,7 +134,7 @@ int conn_table_is_tunnel(struct conn_table *tbl, struct sockaddr_in *addr) {
 int conn_table_register_client_with_tunnel(struct conn_table *tbl, struct sockaddr_in *client) {
 
     // no free tunnel available
-    if (tbl->has_free == 0) return -1;
+    if (tbl->has_free == 0 || tbl->n_elem >= tbl->max_elem) return -1;
 
     // register
     struct map_addr_pair a = {
@@ -173,6 +174,7 @@ void conn_table_clean(struct conn_table *tbl, time_t max_keepalive) {
                 next = cur->next;
                 hashmap_remove(map2, &p->value);
                 hashmap_remove(map, cur->elem);
+                tbl->n_elem--;
                 LOG(INFO_2, "removed connection %s:%d", inet_ntoa(p->value.sin_addr), ntohs(p->value.sin_port));
                 cur = next;
             } else {
@@ -205,6 +207,7 @@ void conn_table_inside_clean(struct conn_table_inside *tbl, int epoll_fd, time_t
         struct hash_node *cur = map->elems[i];
         while (cur != NULL) {
             struct map_fd_time * s = (struct map_fd_time *)cur->elem;
+            LOG(INFO_1, "time diff of %d", time_cur - s->val);
             if (time_cur - s->val >= max_keepalive) {
                 next = cur->next;
                 epoll_ctl(epoll_fd, EPOLL_CTL_DEL, s->key, NULL); // maybe instead of null need epoll event ?
