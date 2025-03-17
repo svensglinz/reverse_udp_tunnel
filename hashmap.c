@@ -40,7 +40,7 @@ struct hash_node* hashmap_insert(struct hashmap* map, void* elem) {
 
     // check if resizing is necessary
     if ((float) map->n_elem / map->len >= .75) {
-        hashmap_resize(map);
+        hashmap_rehash(map, map->len << 1);
     }
     return node;
 }
@@ -85,7 +85,6 @@ int hashmap_remove(struct hashmap* map, void* elem) {
     return -1;
 }
 
-// returns: 1 --> contains, 0 --> does not contain
 int hashmap_contains(struct hashmap* map, void* elem) {
     long hash = map->hash_fun(elem);
     size_t idx = hash % map->len;
@@ -99,12 +98,7 @@ int hashmap_contains(struct hashmap* map, void* elem) {
     return cur == NULL? 0: 1;
 }
 
-void hashmap_resize(struct hashmap* map) {
-    hashmap_rehash(map, map->len << 1);
-}
-
 void hashmap_rehash(struct hashmap* map, size_t size) {
-    // double size
     struct hash_node** elems_new = malloc(sizeof(struct hash_node *) * size);
     struct hash_node** elems_old = map->elems;
     size_t len_old = map->len;
@@ -125,7 +119,6 @@ void hashmap_rehash(struct hashmap* map, size_t size) {
             // save next elem before modifying next pointer
             next_node = cur->next;
 
-            // insert into map (inplace code)
             long hash = map->hash_fun(cur->elem);
             size_t idx = hash % map->len;
             top = map->elems[idx];

@@ -14,10 +14,13 @@ int verify_mac(const struct mac_t* msg, const char* secret) {
     memcpy(msg_verify + len_secret, &msg->nonce, sizeof(msg->nonce));
     sha256_hash(msg_verify, (unsigned char*) hash);
 
-    // we require that the nonce of each incoming 'ping' is strictly
-    // higher than the last once.This means that packages arriving
-    // out of order could potentially be rejected. This is unlikely,
-    // as messages are sent with a delay of >= XX ms between each other
+    /*
+     * we require that the nonce of each incoming 'ping' is strictly
+     * higher than the last once.This means that packages arriving
+     * out of order could potentially be rejected. This is unlikely,
+     * as messages are sent with a delay of >= XX ms between each other
+     */
+
     if (nonce > msg->nonce) return 0;
     nonce = msg->nonce;
     int cmp = memcmp(hash, msg->hash, 32);
