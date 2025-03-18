@@ -33,8 +33,8 @@ The tunnel itself **does not encrypt** traffic. It assumes that the application 
 ### 1. Clone and Build
 ```bash
 # Clone the repository
-git clone https://github.com/yourrepo/reverse-udp-tunnel.git
-cd reverse-udp-tunnel
+git clone git@github.com:svensglinz/reverse_udp_tunnel.git
+cd reverse_udp_tunnel
 
 # Compile the binary
 make
