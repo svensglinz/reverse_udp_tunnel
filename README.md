@@ -79,6 +79,30 @@ All options labeled Inside/Outside should have the same values on both the insid
 
 ## Implementation Details
 
+## Implementation Details
+
+- **At startup**, the inside client opens a socket and sends a keepalive message to the outside client.  
+  The outside client registers this connection as a spare tunnel.
+
+- **When an external client connects** to the outside client, it is mapped to this spare tunnel, which will relay all further traffic from the client to the inside service.
+
+- **Upon receiving the first packet** through the tunnel, the inside service opens another socket and sends a keepalive message to the outside service.  
+  This new connection is registered as the next spare tunnel to be assigned to future clients.
+
+- To enable fast lookups of client-to-tunnel mappings, even with many active tunnels, a **hashmap** is used.
+  
+## Tunnel Lifecycle & Timeout Handling
+
+- If the inside client does not receive any traffic over a tunnel for at least `connectionTimeout * (±20%)` seconds, it will close the socket.
+- If the outside server does not receive a keepalive message from an inside tunnel for `2 × keepaliveInterval` seconds, it will remove the client-to-tunnel mapping.
+
+### ⚠ Potential Issue:
+> A tunnel may be closed by the inside client up to `2 × keepaliveInterval` seconds before it is removed on the outside client.  
+> If a client reconnects before the outside client removes the mapping, traffic may be sent to a closed tunnel, causing a connection failure.
+
+To prevent this, **avoid reconnecting** with the same IP/Port combination immediately after a timeout.
+
+For wireguard, use `persistentKeepalive =` to ensure that a connection does not timeout (more information [here](https://www.wireguard.com/quickstart/#nat-and-firewall-traversal-persistence)) 
 ...
 
 ## Notes
