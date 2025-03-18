@@ -54,7 +54,6 @@ int cmp_sockaddr_in(void *fst, void* snd) {
         return (a->sin_addr.s_addr == b->sin_addr.s_addr && a->sin_port == b->sin_port);
 }
 
-
 /*
  * CONNECTION TABLE FOR OUTSIDE CLIENT
  */
@@ -106,6 +105,7 @@ struct conn_table_inside* conn_table_inside_init() {
 
     tbl->fd_to_time = fd_to_time;
     tbl->free_tunnel = 0;
+    tbl->max_elem = 0;
     return tbl;
 }
 
@@ -115,6 +115,7 @@ void conn_table_inside_add_fd(struct conn_table_inside *tbl, int fd) {
         .val = get_seconds()
     };
     hashmap_insert(tbl->fd_to_time, &s);
+    tbl->n_elem++;
 }
 
 
@@ -127,8 +128,9 @@ struct sockaddr_in* conn_table_get_tunnel_for_client(struct conn_table *tbl, str
 
 int conn_table_is_tunnel(struct conn_table *tbl, struct sockaddr_in *addr) {
     int fst = conn_table_get_client_for_tunnel(tbl, addr) != NULL;
-    int snd = memcmp(&tbl->free_tunnel, addr, sizeof(*addr)) == 0? 1 : 0;
-    return fst | snd;
+    int snd = tbl->free_tunnel.sin_addr.s_addr == addr->sin_addr.s_addr;
+    int trd = tbl->free_tunnel.sin_port == addr->sin_port;
+    return fst || (snd && trd);
 }
 
 int conn_table_register_client_with_tunnel(struct conn_table *tbl, struct sockaddr_in *client) {
@@ -176,6 +178,7 @@ void conn_table_clean(struct conn_table *tbl, time_t max_keepalive) {
                 hashmap_remove(map, cur->elem);
                 tbl->n_elem--;
                 LOG(INFO_2, "removed connection %s:%d", inet_ntoa(p->value.sin_addr), ntohs(p->value.sin_port));
+                LOG(INFO_2, "Tunnel info: %d active", tbl->n_elem);
                 cur = next;
             } else {
                 cur = cur->next;
@@ -192,12 +195,11 @@ void conn_table_inside_update_last_ping(struct conn_table_inside *con_tbl, int f
     }
 }
 
-// chatgpt suggests sth else bc. of concurrent removal!
 void conn_table_inside_clean(struct conn_table_inside *tbl, int epoll_fd, time_t max_keepalive) {
 
     struct hashmap *map = tbl->fd_to_time;
 
-    // if map elems = 0 --> return immediately
+    // if map elems = 0, return immediately
     if (map->n_elem == 0) return;
     time_t time_cur = get_seconds();
     struct hash_node *next;
@@ -210,10 +212,12 @@ void conn_table_inside_clean(struct conn_table_inside *tbl, int epoll_fd, time_t
             //LOG(INFO_1, "time diff of %d", time_cur - s->val);
             if (time_cur - s->val >= max_keepalive) {
                 next = cur->next;
-                epoll_ctl(epoll_fd, EPOLL_CTL_DEL, s->key, NULL); // maybe instead of null need epoll event ?
+                epoll_ctl(epoll_fd, EPOLL_CTL_DEL, s->key, NULL);
                 close(s->key);
                 hashmap_remove(map, cur->elem);
-                LOG(INFO_2, "closed tunnel"); // print number of active connections
+                tbl->n_elem--;
+                LOG(INFO_2, "closed tunnel");
+                LOG(INFO_2, "Tunnel Info: %d active", tbl->n_elem);
                 cur = next;
             } else {
                 cur = cur->next;

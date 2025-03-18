@@ -19,6 +19,7 @@ struct conn_table {
 struct conn_table_inside {
     struct hashmap* fd_to_time;
     int free_tunnel;
+    int n_elem;
 };
 
 struct map_fd_addr {

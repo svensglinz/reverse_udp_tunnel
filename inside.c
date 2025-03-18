@@ -163,7 +163,7 @@ int run_inside(struct args *args) {
         // send traffic to service application and update last connection
         conn_table_inside_update_last_ping(conn_tbl, sock);
         //printf("sending to service application\n");
-        sendto(sock, buffer, bytes_recv, 0, (const struct sockaddr *)&service_addr, sizeof(service_addr));
+        sendto(sock, buffer, bytes_recv, 0, (struct sockaddr *)&service_addr, sizeof(service_addr));
     }
   }
       pthread_mutex_unlock(&lock);
@@ -181,7 +181,7 @@ void *send_keepalive(void *args) {
 
     // first ping current free element
     gen_mac(&mac, prog_args->secret);
-    sendto(conn_tbl->free_tunnel, &mac, sizeof(mac), 0, (const struct sockaddr *)&outside_addr, sizeof(outside_addr));
+    sendto(conn_tbl->free_tunnel, &mac, sizeof(mac), 0, (struct sockaddr *)&outside_addr, sizeof(outside_addr));
 
     // put in external function
     // send packages to all active connections
@@ -192,7 +192,7 @@ void *send_keepalive(void *args) {
         int fd = t->key;
 
         gen_mac(&mac, prog_args->secret);
-        sendto(fd, &mac, sizeof(mac), 0, (const struct sockaddr *)&outside_addr, sizeof(outside_addr));
+        sendto(fd, &mac, sizeof(mac), 0, (struct sockaddr *)&outside_addr, sizeof(outside_addr));
         //printf("sending keepalive\n");
         // wait 50ms until sending out next ping to reduce probability of packages
         // arriving out of order
