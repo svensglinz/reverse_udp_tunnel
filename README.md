@@ -73,11 +73,9 @@ All options labeled Inside/Outside should have the same values on both the insid
 | `-l PORT` | Outside: Port to listen for connections (e.g., `-l 1234`)             |
 | `-n NUMBER` | Inside/Outside: Max open tunnels (default: 10)                        |
 | `-k SECRET` | Inside/Outside: Secret key for keepalive authentication               |
-| `--keepaliveInterval SECONDS` | Interval for keepalive packets (default: 25s)                         |
+| `--keepaliveInterval SECONDS` | Inside/Outside: Interval for keepalive packets (default: 25s)                         |
 | `--connectionTimeout SECONDS` | Inside: Timeout for UDP sockets (default: 60s)                        |
 | `--logLevel LEVEL` | Logging verbosity (default: 2)                                        |
-
-## Implementation Details
 
 ## Implementation Details
 
@@ -102,8 +100,7 @@ All options labeled Inside/Outside should have the same values on both the insid
 
 To prevent this, **avoid reconnecting** with the same IP/Port combination immediately after a timeout.
 
-For wireguard, use `persistentKeepalive =` to ensure that a connection does not timeout (more information [here](https://www.wireguard.com/quickstart/#nat-and-firewall-traversal-persistence)) 
-...
+For wireguard, use `persistentKeepalive =` to ensure that a connection does not timeout (more [here](https://www.wireguard.com/quickstart/#nat-and-firewall-traversal-persistence)) 
 
 ## Notes
 - Adjust the `--keepaliveInterval` as needed to prevent NAT mappings from expiring.
