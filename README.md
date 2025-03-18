@@ -38,6 +38,7 @@ cd reverse_udp_tunnel
 
 # Compile the binary
 make
+cd ./bin
 ```
 
 **Dependencies:** The project requires OpenSSL for HMAC authentication.
@@ -48,7 +49,7 @@ make
 ./reverse-udp-tunnel -s localhost:51820 -o outside.server.com:1234 -k "mysecret" -n 100
 ```
 This command sets up the **inside agent** that:
-- Listens on `localhost:51820`
+- forwards tunnel traffic to `localhost:51820`
 - Periodically pings the outside relay at `outside.server.com:1234`
 - Uses `"mysecret"` to authenticate keepalive messages
 - allows up to `100` simultaneous connections (`-n 100`)
