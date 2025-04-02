@@ -183,12 +183,14 @@ void *send_keepalive(void *args) {
     // first ping current free element
     gen_mac(&mac, prog_args->secret);
     sendto(conn_tbl->free_tunnel, &mac, sizeof(mac), 0, (struct sockaddr *)&outside_addr, sizeof(outside_addr));
+    printf("sending to %d\n", conn_tbl->free_tunnel);
 
     // put in external function
     // send packages to all active connections
     struct map_fd_time *t;
     HASHMAP_FOREACH(map, t) {
       int fd = t->key;
+      printf("sending to %d\n", fd);
       gen_mac(&mac, prog_args->secret);
       sendto(fd, &mac, sizeof(mac), 0, (struct sockaddr *)&outside_addr, sizeof(outside_addr));
       usleep(100*1000);

@@ -164,7 +164,7 @@ struct sockaddr_in* conn_table_register_client_with_tunnel(struct conn_table *tb
     tbl->has_free = 0;
     tbl->n_elem++;
 
-    return &((struct map_addr_pair*)&n->elem)->key;
+    return &((struct map_addr_pair*)n->elem)->key;
 }
 
 void conn_table_clean(struct conn_table *tbl, time_t max_keepalive) {
