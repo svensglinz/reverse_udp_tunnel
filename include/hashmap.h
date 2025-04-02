@@ -20,7 +20,7 @@ hashnode_t *_it; \
 void *_next; \
 for (size_t _i = 0; _i < (map)->len; _i++) \
     for (_it = (map)->elems[_i]; _it; ) \
-         for (val = (void *)_it->elem; _next = _it->next ; _it; _it = _next, _next = _it ? _it->next : NULL, val = (void *)_it->elem)
+         for (val = (void *)_it->elem, _next = _it->next ; _it; _it = _next, _next = _it ? _it->next : NULL, val = (void *)_it->elem)
 
 typedef struct hashnode {
     struct hashnode *next;
