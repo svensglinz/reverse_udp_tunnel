@@ -243,10 +243,11 @@ void conn_table_inside_update_last_ping(conntable_inside_t *con_tbl, int fd) {
 void conn_table_inside_clean(conntable_inside_t *tbl, int epoll_fd, time_t max_keepalive) {
 
    // if map elems = 0, return immediately
+    hashmap_t *map = tbl->fd_to_time;
+
     if (map->n_elem == 0) return;
     time_t time_cur = get_seconds();
 
-    hashmap_t *map = tbl->fd_to_time;
     struct map_fd_time *s;
 
     // iterate over elements and remove if needed
