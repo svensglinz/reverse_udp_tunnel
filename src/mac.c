@@ -11,7 +11,6 @@ int verify_mac(const struct mac_t* msg, const char* secret) {
     static uint64_t nonce = 0;
 
     // verify sequence number
-    printf("msg-nonce is %d, nonce is %d\n", msg->nonce, nonce);
     if (msg->nonce < nonce) return 0;
 
     char hash[32];
