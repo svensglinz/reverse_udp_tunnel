@@ -39,7 +39,7 @@ int run_outside(const struct args* args) {
     entry_addr.sin_addr.s_addr = INADDR_ANY;
     entry_addr.sin_port = htons(args->outside_listen);
 
-    if (bind(outside_sock, (const struct sockaddr *)&entry_addr, sizeof(entry_addr)) < 0){
+    if (bind(outside_sock, (struct sockaddr *)&entry_addr, sizeof(entry_addr)) < 0){
         LOG(ERROR, "error connecting to port %d", args->outside_listen);
         exit(EXIT_FAILURE);
     }
@@ -114,12 +114,12 @@ int run_outside(const struct args* args) {
 
         // traffic is from an unknown client
         // register a new tunnel and forward to the inside
-        if (conn_table_register_client_with_tunnel(conn_tbl, &client_addr) < 0) {
+        if ((conn = conn_table_register_client_with_tunnel(conn_tbl, &client_addr))) {
             LOG(INFO_2, "Could not establish connection for %s:%d. No free tunnel available", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
         } else {
             LOG(INFO_2, "allocating spare tunnel for connection %s:%d", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
         }
-        sendto(outside_sock, buffer, bytes_recv, 0, (struct sockaddr *)&conn_tbl->free_tunnel, sizeof(conn_tbl->free_tunnel));
+        sendto(outside_sock, buffer, bytes_recv, 0, (struct sockaddr *)conn, sizeof(conn));
 
         unlock:
         pthread_mutex_unlock(&lock);

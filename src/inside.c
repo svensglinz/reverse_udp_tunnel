@@ -36,14 +36,14 @@ int create_and_register_client_socket(int epollfd) {
   // new non-blocking socket
   int fd = socket(AF_INET, SOCK_DGRAM, 0);
   int flags = fcntl(fd, F_GETFL);
-  //fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+  fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 
   struct sockaddr_in addr;
   addr.sin_addr.s_addr = INADDR_ANY;
   addr.sin_port = 0; // allocate by OS
   addr.sin_family = AF_INET;
 
-  if (bind(fd, (const struct sockaddr *)&addr, sizeof(addr)) < 0) {
+  if (bind(fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
     LOG(ERROR, "creating socket for new outbound connection failed");
     exit(EXIT_FAILURE);
   }
@@ -141,6 +141,7 @@ int run_inside(struct args *args) {
           continue;
         }
 
+        // return traffic from inside service. Return to outside connection
         if (client.sin_addr.s_addr == service_addr.sin_addr.s_addr && client.sin_port == service_addr.sin_port) {
           //printf("sendint to outside\n");
             sendto(sock, buffer, bytes_recv, 0, (const struct sockaddr *)&outside_addr, sizeof(outside_addr));
@@ -177,7 +178,7 @@ void *send_keepalive(void *args) {
   struct mac_t mac;
   int r;
   while (1) {
-    struct hashmap *map = conn_tbl->fd_to_time;
+    hashmap_t *map = conn_tbl->fd_to_time;
 
     // first ping current free element
     gen_mac(&mac, prog_args->secret);
@@ -185,21 +186,14 @@ void *send_keepalive(void *args) {
 
     // put in external function
     // send packages to all active connections
-    for (int i = 0; i < map->len; i++) {
-      struct hash_node *cur = map->elems[i];
-      while (cur != NULL) {
-        struct map_fd_time* t = (struct map_fd_time *)cur->elem;
-        int fd = t->key;
-
-        gen_mac(&mac, prog_args->secret);
-        sendto(fd, &mac, sizeof(mac), 0, (struct sockaddr *)&outside_addr, sizeof(outside_addr));
-        //printf("sending keepalive\n");
-        // wait 50ms until sending out next ping to reduce probability of packages
-        // arriving out of order
-        cur = cur->next;
-        usleep(100 * 1000);
-      }
+    struct map_fd_time *t;
+    HASHMAP_FOREACH(map, t) {
+      int fd = t->key;
+      gen_mac(&mac, prog_args->secret);
+      sendto(fd, &mac, sizeof(mac), 0, (struct sockaddr *)&outside_addr, sizeof(outside_addr));
+      usleep(100*1000);
     }
+
     // effectively ~ keepalive_timeout + 50ms * #connections (assumed negligible here for reasonable N. connections)
     sleep(prog_args->keepalive_timeout);
   }

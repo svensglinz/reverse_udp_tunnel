@@ -77,7 +77,7 @@ int conn_table_is_tunnel(struct conn_table *tbl, struct sockaddr_in *addr);
 /**
  *
  */
-int conn_table_register_client_with_tunnel(struct conn_table *tbl, struct sockaddr_in *addr);
+struct sockaddr_in* conn_table_register_client_with_tunnel(struct conn_table *tbl, struct sockaddr_in *addr);
 
 /*
  *

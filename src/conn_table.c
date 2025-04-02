@@ -69,12 +69,13 @@ struct conn_table* conn_table_init(int max_elem) {
     struct hashmap_params params = {
         .obj_size = sizeof(struct map_addr_pair),
         .cmp_fun = cmp_sockaddr_in,
-        .hash_fun = hash_sockaddr_in
+        .hash_fun = hash_sockaddr_in,
+        .cleanup_fun = NULL
     };
 
     struct conn_table *tbl = malloc(sizeof(struct conn_table));
-    struct hashmap *tunnel_to_client = hashmap_init(16, &params);
-    struct hashmap *client_to_tunnel = hashmap_init(16, &params);
+    hashmap_t *tunnel_to_client = hashmap_init(16, &params);
+    hashmap_t *client_to_tunnel = hashmap_init(16, &params);
     tbl->tunnel_to_client = tunnel_to_client;
     tbl->client_to_tunnel = client_to_tunnel;
     tbl->n_elem = 0;
@@ -100,7 +101,7 @@ struct conn_table_inside* conn_table_inside_init() {
         .cmp_fun = cmp_int,
         .hash_fun = hash_int
     };
-    struct hashmap *fd_to_time = hashmap_init(16, &params);
+    hashmap_t *fd_to_time = hashmap_init(16, &params);
     struct conn_table_inside *tbl = malloc(sizeof(struct conn_table_inside));
 
     tbl->fd_to_time = fd_to_time;
@@ -133,10 +134,11 @@ int conn_table_is_tunnel(struct conn_table *tbl, struct sockaddr_in *addr) {
     return fst || (snd && trd);
 }
 
-int conn_table_register_client_with_tunnel(struct conn_table *tbl, struct sockaddr_in *client) {
+// returns the registered tunnel
+struct sockaddr_in* conn_table_register_client_with_tunnel(struct conn_table *tbl, struct sockaddr_in *client) {
 
     // no free tunnel available
-    if (tbl->has_free == 0 || tbl->n_elem >= tbl->max_elem) return -1;
+    if (tbl->has_free == 0 || tbl->n_elem >= tbl->max_elem) return NULL;
 
     // register
     struct map_addr_pair a = {
@@ -153,42 +155,34 @@ int conn_table_register_client_with_tunnel(struct conn_table *tbl, struct sockad
     };
 
     hashmap_insert(tbl->client_to_tunnel, &a);
-    hashmap_insert(tbl->tunnel_to_client, &b);
+    hashnode_t *n = hashmap_insert(tbl->tunnel_to_client, &b);
     tbl->has_free = 0;
     tbl->n_elem++;
-    return 1;
+
+    return &((struct map_addr_pair*)&n->elem)->key;
 }
 
 void conn_table_clean(struct conn_table *tbl, time_t max_keepalive) {
     time_t time_cur = get_seconds();
-    struct hashmap *map = tbl->tunnel_to_client;
-    struct hashmap *map2 = tbl->client_to_tunnel;
+    hashmap_t *map = tbl->tunnel_to_client;
+    hashmap_t *map2 = tbl->client_to_tunnel;
 
     if (map->n_elem == 0) return;
 
-    struct hash_node *next;
-    for (int i = 0; i < map->len; i++) {
-        struct hash_node *cur = map->elems[i];
-        while (cur != NULL) {
-            // never null !!!
-            struct map_addr_pair* p = (struct map_addr_pair*) cur->elem;
-            if (time_cur - p->last_activity >= max_keepalive) {
-                next = cur->next;
-                hashmap_remove(map2, &p->value);
-                hashmap_remove(map, cur->elem);
-                tbl->n_elem--;
-                LOG(INFO_2, "removed connection %s:%d", inet_ntoa(p->value.sin_addr), ntohs(p->value.sin_port));
-                LOG(INFO_2, "Tunnel info: %d active", tbl->n_elem);
-                cur = next;
-            } else {
-                cur = cur->next;
-            }
+    struct map_addr_pair* p;
+    HASHMAP_FOREACH(map, p) {
+         if (time_cur - p->last_activity >= max_keepalive) {
+              hashmap_remove(map2, &p->value);
+              hashmap_remove(map, p);
+              tbl->n_elem--;
+              LOG(INFO_2, "removed connection %s:%d", inet_ntoa(p->value.sin_addr), ntohs(p->value.sin_port));
+              LOG(INFO_2, "Tunnel info: %d active", tbl->n_elem);
         }
     }
 }
 
 void conn_table_inside_update_last_ping(struct conn_table_inside *con_tbl, int fd) {
-    struct hashmap *map = con_tbl->fd_to_time;
+    hashmap_t *map = con_tbl->fd_to_time;
     struct map_fd_time *e = hashmap_get(map, &fd);
     if (e != NULL) {
         e->val = get_seconds();
@@ -197,7 +191,7 @@ void conn_table_inside_update_last_ping(struct conn_table_inside *con_tbl, int f
 
 void conn_table_inside_clean(struct conn_table_inside *tbl, int epoll_fd, time_t max_keepalive) {
 
-    struct hashmap *map = tbl->fd_to_time;
+    hashmap_t *map = tbl->fd_to_time;
 
     // if map elems = 0, return immediately
     if (map->n_elem == 0) return;
@@ -205,23 +199,15 @@ void conn_table_inside_clean(struct conn_table_inside *tbl, int epoll_fd, time_t
     struct hash_node *next;
 
     // iterate over elements and remove if needed
-    for (int i = 0; i < map->len; i++) {
-        struct hash_node *cur = map->elems[i];
-        while (cur != NULL) {
-            struct map_fd_time * s = (struct map_fd_time *)cur->elem;
-            //LOG(INFO_1, "time diff of %d", time_cur - s->val);
-            if (time_cur - s->val >= max_keepalive) {
-                next = cur->next;
-                epoll_ctl(epoll_fd, EPOLL_CTL_DEL, s->key, NULL);
-                close(s->key);
-                hashmap_remove(map, cur->elem);
-                tbl->n_elem--;
-                LOG(INFO_2, "closed tunnel");
-                LOG(INFO_2, "Tunnel Info: %d active", tbl->n_elem);
-                cur = next;
-            } else {
-                cur = cur->next;
-            }
+    struct map_fd_time *s;
+    HASHMAP_FOREACH(map, s) {
+        if (time_cur - s->val >= max_keepalive) {
+            epoll_ctl(epoll_fd, EPOLL_CTL_DEL, s->key, NULL);
+            close(s->key);
+            hashmap_remove(map, s);
+            tbl->n_elem--;
+            LOG(INFO_2, "closed tunnel");
+            LOG(INFO_2, "Tunnel Info: %d active", tbl->n_elem);
         }
     }
 }

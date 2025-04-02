@@ -2,40 +2,79 @@
 #define UDP_REVERSE_HASHMAP_H
 
 #include <stddef.h>
-#include <netinet/in.h>
+#include <stdint.h>
+#include <stdlib.h>
 
-struct hash_node {
-    struct hash_node *next;
+/**
+* @brief Iterator over all elements in the hashmap
+*
+* @details The element pointed to by `val` is safe to delete
+* during the iteration (ie. hashmap_delete(map, val) can be called)
+*
+* @param[in] map the hashmap to iterate over
+* @apram[in] val a pointer variable to hold each element during iteration
+*/
+
+#define HASHMAP_FOREACH(map, val) \
+hashnode_t *_it; \
+void *_next; \
+for (size_t _i = 0; _i < (map)->len; _i++) \
+    for (_it = (map)->elems[_i]; _it;) \
+        for (val= (void*)_it->elem, _next=_it->next; _it; _it=_next)
+
+typedef struct hashnode {
+    struct hashnode *next;
     char elem[];
-};
+} hashnode_t;
 
-struct hashmap {
-    struct hash_node** elems;
+typedef struct hashmap {
+    hashnode_t** elems;
     uint16_t obj_size;
     size_t len;
     size_t n_elem;
     uint64_t (*hash_fun)(void*); // hash function
     int (*cmp_fun)(void*, void*); // comparator
-};
+    void (*cleanup_fun)(void *); // destructor
+} hashmap_t;
 
 /**
- * @struct hashmap_params
+ * @hashmap_t_params
+ * @brief Structure that holds configuration options for the hashmap.
  *
- * structure that holds configuration options
- * for the hashmap (size of elements (key, value), comparator and hash function)
+ * @details This structure allows you to configure various aspects of the hashmap,
+ * including the size of elements (key, value), comparator and hash functions,
+ * and a cleanup function.
+ *
+ * @param obj_size Size of each element (key, value) in bytes.
+ * @param cmp_fun  Function pointer to a comparator function used to compare keys.
+ * The function receives pointers to the elements passed in hashmap_insert() as an argument
+ * It should return 0 if the keys are not equal, and non-zero if they are.
+ *
+ * @param hash_fun Function pointer to a hash function used to generate hash values from keys.
+ * The function receives a pointer to the element passed in hashmap_insert() as an argument
+ *
+ * @param cleanup_fun Function pointer to a cleanup function called before an element is removed from the hashmap.
+ * The function receives a pointer to the element passed in hashmap_insert() as an argument
+ * If no cleanup is required, set this to `NULL`.
+ *
+ * @note The `cleanup_fun` is particularly useful when storing dynamically allocated data in the hashmap.
+ * It ensures that memory is properly freed before the element is removed.
  */
 struct hashmap_params {
     uint16_t obj_size;
     int (*cmp_fun)(void*, void*);
     uint64_t (*hash_fun)(void*);
+    void (*cleanup_fun)(void*);
 };
 
 /**
+ * Initialize hashmap
+ *
  * @param[in] map_size Initial number of buckets
  * @param[in] params
- * @return a pointer to the initialized hashmap
+ * @returns a pointer to the initialized hashmap
  */
-struct hashmap* hashmap_init(size_t map_size, struct hashmap_params *params);
+hashmap_t* hashmap_init(size_t map_size, const struct hashmap_params *params);
 
 /**
  * Checks if a key is contained in a hashmap.
@@ -46,7 +85,7 @@ struct hashmap* hashmap_init(size_t map_size, struct hashmap_params *params);
  * @retval 0 The hashmap does not contain the key.
  * @return  Undefined behavior if `map` or `key` is NULL.
  */
-int hashmap_contains(struct hashmap* map, void* key);
+int hashmap_contains(const hashmap_t* map, void* key);
 
 /**
  * resize `map` to the desired size and rehash all elements
@@ -54,7 +93,7 @@ int hashmap_contains(struct hashmap* map, void* key);
  * @param[in] map map to resize/rehash
  * @param[in] size new size of the map
  */
-void hashmap_rehash(struct hashmap *map, size_t size);
+void hashmap_rehash(hashmap_t *map, size_t size);
 
 /**
  * insert a new element into the map
@@ -65,12 +104,12 @@ void hashmap_rehash(struct hashmap *map, size_t size);
  * @return a pointer to the node where the element was inserted. This
  * pointer remains valid as long as the element is contained inside the map.
  */
-struct hash_node* hashmap_insert(struct hashmap* map, void *elem);
+hashnode_t* hashmap_insert(hashmap_t* map, void *elem);
 
 /*
  * retreive an element from the hashmap
  */
-void* hashmap_get(struct hashmap* map, void* key);
+void* hashmap_get(const hashmap_t* map, void* key);
 
 /**
  * remove an element from the hashmap
@@ -82,7 +121,7 @@ void* hashmap_get(struct hashmap* map, void* key);
  * @retval -1 element was not removed
  * @return undefined behavior if `map` or `key` is null
  */
-int hashmap_remove(struct hashmap* map, void* key);
+int hashmap_remove(hashmap_t* map, void* key);
 
 /**
  * shrinks the hashmap to a load factor of just below 0.75 if
@@ -92,7 +131,13 @@ int hashmap_remove(struct hashmap* map, void* key);
  * @retval 0 criteria for shrinking were met and map was shrunk
  * @retval -1 criteria for shrinking were not met and map was not changed
  */
-int hashmap_shrink(struct hashmap *map);
+int hashmap_shrink(hashmap_t *map);
+
+/**
+ * Free hashmap and return all memory
+ * @param[in] map hashmap to free
+ */
+void hashmap_free(hashmap_t *map);
 
 #endif
 
