@@ -141,6 +141,7 @@ int run_inside(struct args *args) {
           continue;
         }
 
+        printf("traffic from %s, %d\n", inet_ntoa(client.sin_addr), ntohs(client.sin_port));
         // return traffic from inside service. Return to outside connection
         if (client.sin_addr.s_addr == service_addr.sin_addr.s_addr && client.sin_port == service_addr.sin_port) {
           printf("sendint to outside\n");
