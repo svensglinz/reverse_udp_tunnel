@@ -134,7 +134,7 @@ int run_inside(struct args *args) {
         int sock = events[i].data.fd;
 
         ssize_t bytes_recv = recvfrom(sock, buffer, BUFF_SIZE, 0, (struct sockaddr *)&client, &client_size);
-        //printf("reveived %d bytes\n", bytes_recv);
+        printf("reveived %d bytes from %s:%d\n", bytes_recv, inet_ntoa(service_addr.sin_addr), ntohs(service_addr.sin_port));
         // traffic is from service application
 
         // ping ack signal
