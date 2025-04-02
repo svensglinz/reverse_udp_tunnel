@@ -181,6 +181,7 @@ void *send_keepalive(void *args) {
   int r;
 
   while (1) {
+    pthread_mutex_lock(&lock);
     hashmap_t *map = conn_tbl->fd_to_time;
 
     // first ping current free element
@@ -199,6 +200,7 @@ void *send_keepalive(void *args) {
     }
     mac_seq++;
     // effectively ~ keepalive_timeout + 50ms * #connections (assumed negligible here for reasonable N. connections)
+    pthread_mutex_unlock(&lock);
     sleep(prog_args->keepalive_timeout);
   }
 }
