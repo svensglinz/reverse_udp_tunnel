@@ -73,11 +73,12 @@ struct conn_table* conn_table_init(int max_elem) {
         .cleanup_fun = NULL
     };
 
-    struct conn_table *tbl = malloc(sizeof(struct conn_table));
+    struct conn_table *tbl = calloc(sizeof(struct conn_table), 1);
     hashmap_t *tunnel_to_client = hashmap_init(16, &params);
     hashmap_t *client_to_tunnel = hashmap_init(16, &params);
     tbl->tunnel_to_client = tunnel_to_client;
     tbl->client_to_tunnel = client_to_tunnel;
+    tbl->has_free = 0;
     tbl->n_elem = 0;
     tbl->max_elem = max_elem;
 
