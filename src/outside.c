@@ -86,7 +86,7 @@ int run_outside(const struct args* args) {
             } else {
                 // keepalive is from a tunnel that is currently active (ie. associated with a client)
                 // update last ping time
-                //printf("received keepalive\n");
+                printf("received keepalive from from %s:%d", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
                 conn_table_update_last_ping(conn_tbl, &client_addr);
                 // return 1 byte acknowledgement (check in in to not forward)
                 //sendto(outside_sock, buffer, 1, 0, (struct sockaddr *)&client_addr, sizeof(client_addr));
