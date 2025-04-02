@@ -193,12 +193,23 @@ void *send_keepalive(void *args) {
     // put in external function
     // send packages to all active connections
 
+    hashnode_t *cur;
+    for (int i = 0; i < map->len; i++) {
+      cur = map->elems[i];
+       while (cur != NULL) {
+         struct map_fd_time *s = (struct map_fd_time*)cur->elem;
+         gen_mac(&mac, prog_args->secret, mac_seq); // send all pings with same sequence number
+         sendto(s->key, &mac, sizeof(mac), 0, (struct sockaddr *)&outside_addr, sizeof(outside_addr));
+         cur = cur->next;
+       }
+     }
+     /*
     HASHMAP_FOREACH(map, t) {
       int fd = t->key;
       gen_mac(&mac, prog_args->secret, mac_seq); // send all pings with same sequence number
       sendto(fd, &mac, sizeof(mac), 0, (struct sockaddr *)&outside_addr, sizeof(outside_addr));
     }
-
+    */
     mac_seq++;
     // effectively ~ keepalive_timeout + 50ms * #connections (assumed negligible here for reasonable N. connections)
     pthread_mutex_unlock(&lock);
@@ -208,10 +219,13 @@ void *send_keepalive(void *args) {
 
 // periodically close unused tunnels
 void *cleanup(void *args) {
+  /*
   while (1) {
     pthread_mutex_lock(&lock);
     conn_table_inside_clean(conn_tbl, epollfd, prog_args->udp_timeout);
     pthread_mutex_unlock(&lock);
     sleep(60); // max 20% error tolerance
   }
+*/
+   return NULL;
 }

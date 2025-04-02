@@ -114,7 +114,7 @@ struct conn_table_inside* conn_table_inside_init() {
 
     };
     hashmap_t *fd_to_time = hashmap_init(16, &params);
-    conntable_inside_t *tbl = malloc(sizeof(struct conn_table_inside));
+    conntable_inside_t *tbl = calloc(sizeof(struct conn_table_inside), 1);
 
     tbl->fd_to_time = fd_to_time;
     tbl->free_tunnel = 0;
