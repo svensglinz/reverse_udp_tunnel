@@ -212,6 +212,6 @@ void *cleanup(void *args) {
     pthread_mutex_lock(&lock);
     conn_table_inside_clean(conn_tbl, epollfd, prog_args->udp_timeout);
     pthread_mutex_unlock(&lock);
-    sleep(prog_args->udp_timeout / 5); // max 20% error tolerance
+    sleep(60); // max 20% error tolerance
   }
 }
