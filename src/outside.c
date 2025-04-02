@@ -91,7 +91,7 @@ int run_outside(const struct args* args) {
                 //printf("received keepalive\n");
                 conn_table_update_last_ping(conn_tbl, &client_addr);
                 // return 1 byte acknowledgement (check in in to not forward)
-                sendto(outside_sock, buffer, 1, 0, (struct sockaddr *)&client_addr, sizeof(client_addr));
+                //sendto(outside_sock, buffer, 1, 0, (struct sockaddr *)&client_addr, sizeof(client_addr));
             }
             goto unlock;
         }

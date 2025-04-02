@@ -128,6 +128,11 @@ struct sockaddr_in* conn_table_get_tunnel_for_client(struct conn_table *tbl, str
 }
 
 int conn_table_is_tunnel(struct conn_table *tbl, struct sockaddr_in *addr) {
+
+    printf("addr is %d, %d\n", addr->sin_addr.s_addr, addr->sin_port);
+    printf("free addr is %d, %d\n", tbl->free_tunnel.sin_addr.s_addr, tbl->free_tunnel.sin_port);
+    fflush(stdout);
+
     int fst = conn_table_get_client_for_tunnel(tbl, addr) != NULL;
     int snd = tbl->free_tunnel.sin_addr.s_addr == addr->sin_addr.s_addr;
     int trd = tbl->free_tunnel.sin_port == addr->sin_port;
