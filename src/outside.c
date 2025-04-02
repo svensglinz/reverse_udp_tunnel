@@ -120,11 +120,14 @@ int run_outside(const struct args* args) {
 // the tunnel connection has been torn down by the inside client.
 // If a client attempts to connect again from the same IP:Port within that period, no traffic will be processed.
 void * clean_table() {
+  /*
     while (1) {
     pthread_mutex_lock(&lock);
     conn_table_clean(conn_tbl, 2*prog_args->keepalive_timeout + 3);
     pthread_mutex_unlock(&lock);
     sleep(2 * prog_args->keepalive_timeout + 3);
     }
+    */
+  return NULL;
 }
 
