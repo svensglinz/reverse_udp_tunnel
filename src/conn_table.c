@@ -143,9 +143,10 @@ struct sockaddr_in* conn_table_get_tunnel_for_client(conntable_t *tbl, struct so
     // first connection. Register spare tunnel with client
     if (tbl->has_free == 0 || tbl->n_elem >= tbl->max_elem) {
       // first time device attempts connection
-      if (hashmap_get(tbl->pending, client) != NULL) {
+      if (hashmap_get(tbl->pending, client) == NULL) {
           LOG(INFO_2, "Could not establish connection for %s:%d. No free tunnel available", inet_ntoa(client->sin_addr), ntohs(client->sin_port));
           LOG(INFO_2, "This error will not be repeated");
+          hashmap_insert(tbl->pending, client);
       }
       return NULL;
     }
