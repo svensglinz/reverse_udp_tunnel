@@ -91,7 +91,7 @@ int run_outside(const struct args* args) {
                 //printf("received keepalive\n");
                 conn_table_update_last_ping(conn_tbl, &client_addr);
                 // return 1 byte acknowledgement (check in in to not forward)
-                //sendto(outside_sock, buffer, 1, 0, (struct sockaddr *)&client_addr, sizeof(client_addr));
+                sendto(outside_sock, buffer, 1, 0, (struct sockaddr *)&client_addr, sizeof(client_addr));
             }
             goto unlock;
         }
@@ -99,7 +99,7 @@ int run_outside(const struct args* args) {
         // traffic is from an established tunnel from the inside
         // send traffic back to the associated client
         if ((conn = conn_table_get_client_for_tunnel(conn_tbl, &client_addr))) {
-            //printf("sending back to client\n");
+            printf("sending back to client\n");
             sendto(outside_sock, buffer, bytes_recv, 0, (struct sockaddr *)conn, sizeof(*conn));
             goto unlock;
         }

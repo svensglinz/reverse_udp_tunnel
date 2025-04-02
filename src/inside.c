@@ -143,7 +143,7 @@ int run_inside(struct args *args) {
 
         // return traffic from inside service. Return to outside connection
         if (client.sin_addr.s_addr == service_addr.sin_addr.s_addr && client.sin_port == service_addr.sin_port) {
-          //printf("sendint to outside\n");
+          printf("sendint to outside\n");
             sendto(sock, buffer, bytes_recv, 0, (const struct sockaddr *)&outside_addr, sizeof(outside_addr));
             continue;
         }
@@ -163,7 +163,7 @@ int run_inside(struct args *args) {
 
         // send traffic to service application and update last connection
         conn_table_inside_update_last_ping(conn_tbl, sock);
-        //printf("sending to service application\n");
+        printf("sending to service application\n");
         sendto(sock, buffer, bytes_recv, 0, (struct sockaddr *)&service_addr, sizeof(service_addr));
     }
   }
