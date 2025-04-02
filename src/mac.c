@@ -3,8 +3,10 @@
 #include "sha256.h"
 #include <string.h>
 #include "mac.h"
+#include <stdio.h>
 
 int verify_mac(const struct mac_t* msg, const char* secret) {
+
 
     static uint64_t nonce = 0;
     char hash[32];
@@ -13,6 +15,9 @@ int verify_mac(const struct mac_t* msg, const char* secret) {
     memcpy(msg_verify, secret, len_secret);
     memcpy(msg_verify + len_secret, &msg->nonce, sizeof(msg->nonce));
     sha256_hash(msg_verify, (unsigned char*) hash);
+
+    printf("nonce received: %d\n", msg->nonce);
+    printf("nonce required: >= %d\n", nonce);
 
     /*
      * we require that the nonce of each incoming 'ping' is strictly
