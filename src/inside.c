@@ -179,10 +179,11 @@ void *send_keepalive(void *args) {
 
   struct mac_t mac;
   int r;
+  hashmap_t *map = conn_tbl->fd_to_time;
+  struct map_fd_time *t;
 
   while (1) {
     pthread_mutex_lock(&lock);
-    hashmap_t *map = conn_tbl->fd_to_time;
 
     // first ping current free element
     gen_mac(&mac, prog_args->secret, mac_seq);
@@ -191,7 +192,6 @@ void *send_keepalive(void *args) {
 
     // put in external function
     // send packages to all active connections
-    struct map_fd_time *t;
 
     HASHMAP_FOREACH(map, t) {
       int fd = t->key;
