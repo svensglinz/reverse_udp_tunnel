@@ -19,9 +19,6 @@ int verify_mac(const struct mac_t* msg, const char* secret) {
     memcpy(msg_verify + len_secret, &msg->nonce, sizeof(msg->nonce));
     sha256_hash(msg_verify, (unsigned char*) hash);
 
-    printf("nonce received: %d\n", msg->nonce);
-    printf("nonce required: >= %d\n", nonce);
-
     /*
      * we require that the nonce of each incoming 'ping' is strictly
      * higher than the last once.This means that packages arriving
