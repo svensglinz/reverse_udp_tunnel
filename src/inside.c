@@ -198,6 +198,7 @@ void *send_keepalive(void *args) {
       gen_mac(&mac, prog_args->secret, mac_seq); // send all pings with same sequence number
       sendto(fd, &mac, sizeof(mac), 0, (struct sockaddr *)&outside_addr, sizeof(outside_addr));
     }
+
     mac_seq++;
     // effectively ~ keepalive_timeout + 50ms * #connections (assumed negligible here for reasonable N. connections)
     pthread_mutex_unlock(&lock);
