@@ -10,7 +10,7 @@ int verify_mac(const struct mac_t* msg, const char* secret) {
     static uint64_t nonce = 0;
 
     // verify sequence number
-    if (nonce > msg->nonce) return 0;
+    if (msg->nonce < nonce) return 0;
 
     char hash[32];
     size_t len_secret = strlen(secret);
@@ -40,14 +40,17 @@ void gen_mac(struct mac_t *mac, const char *secret, int seq) {
     size_t secret_len = strlen(secret);
     char msg[secret_len + sizeof(nonce)];
 
-    memcpy(msg, secret, secret_len);
-    memcpy(msg + secret_len, &nonce, sizeof(nonce));
-    strcpy(mac->check, "KAS");
-    sha256_hash(msg, (unsigned char *)mac->hash);
-
     // only increase nonce with a new ping sequence batch
     if (seq > seq_cur) {
         seq_cur = seq;
-        mac->nonce = nonce++;
+        nonce++;
     }
+
+    memcpy(msg, secret, secret_len);
+    memcpy(msg + secret_len, &nonce, sizeof(nonce));
+    mac->nonce = nonce;
+    strcpy(mac->check, "KAS");
+    sha256_hash(msg, (unsigned char *)mac->hash);
+
+
 }
