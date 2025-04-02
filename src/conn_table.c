@@ -144,6 +144,7 @@ int conn_table_is_tunnel(struct conn_table *tbl, struct sockaddr_in *addr) {
 struct sockaddr_in* conn_table_register_client_with_tunnel(struct conn_table *tbl, struct sockaddr_in *client) {
 
     // no free tunnel available
+    printf("has free is %d\n", tbl->has_free);
     if (tbl->has_free == 0 || tbl->n_elem >= tbl->max_elem) return NULL;
 
     // register
