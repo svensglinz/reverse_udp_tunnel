@@ -164,7 +164,7 @@ int run_inside(struct args *args) {
 
         // send traffic to service application and update last connection
         conn_table_inside_update_last_ping(conn_tbl, sock);
-        printf("sending to service application\n");
+        printf("sending to service application %s:%d\n", inet_ntoa(client.sin_addr), ntohs(client.sin_port));
         sendto(sock, buffer, bytes_recv, 0, (struct sockaddr *)&service_addr, sizeof(service_addr));
     }
   }
