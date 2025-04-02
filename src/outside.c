@@ -86,7 +86,7 @@ int run_outside(const struct args* args) {
             } else {
                 // keepalive is from a tunnel that is currently active (ie. associated with a client)
                 // update last ping time
-                printf("received keepalive from from %s:%d\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
+                //printf("received keepalive from from %s:%d\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
                 conn_table_update_last_ping(conn_tbl, &client_addr);
                 // return 1 byte acknowledgement (check in in to not forward)
                 //sendto(outside_sock, buffer, 1, 0, (struct sockaddr *)&client_addr, sizeof(client_addr));
@@ -97,7 +97,7 @@ int run_outside(const struct args* args) {
         // traffic is from an established tunnel from the inside
         // send traffic back to the associated client
         if ((conn = conn_table_get_client_for_tunnel(conn_tbl, &client_addr))) {
-            printf("sending back to client\n");
+            //printf("sending back to client\n");
             sendto(outside_sock, buffer, bytes_recv, 0, (struct sockaddr *)conn, sizeof(*conn));
             goto unlock;
         }
@@ -105,7 +105,7 @@ int run_outside(const struct args* args) {
         // outside traffic from client and we have an established tunnel
         // forward the traffic into the tunnel
         if ((conn = conn_table_get_tunnel_for_client(conn_tbl, &client_addr))) {
-            printf("sending into tunnel %s:%d\n", inet_ntoa(conn->sin_addr), ntohs(conn->sin_port));
+            //printf("sending into tunnel %s:%d\n", inet_ntoa(conn->sin_addr), ntohs(conn->sin_port));
             sendto(outside_sock, buffer, bytes_recv, 0, (struct sockaddr *)conn, sizeof(*conn));
         }
         unlock:

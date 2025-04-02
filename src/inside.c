@@ -134,7 +134,7 @@ int run_inside(struct args *args) {
         int sock = events[i].data.fd;
 
         ssize_t bytes_recv = recvfrom(sock, buffer, BUFF_SIZE, 0, (struct sockaddr *)&client, &client_size);
-        printf("reveived %d bytes from %s:%d\n", bytes_recv, inet_ntoa(client.sin_addr), ntohs(client.sin_port));
+        //printf("reveived %d bytes from %s:%d\n", bytes_recv, inet_ntoa(client.sin_addr), ntohs(client.sin_port));
         // traffic is from service application
 
         // ping ack signal
@@ -144,7 +144,7 @@ int run_inside(struct args *args) {
 
         // return traffic from inside service. Return to outside connection
         if (client.sin_addr.s_addr == service_addr.sin_addr.s_addr && client.sin_port == service_addr.sin_port) {
-          printf("sendint to outside\n");
+          //printf("sendint to outside\n");
             sendto(sock, buffer, bytes_recv, 0, (const struct sockaddr *)&outside_addr, sizeof(outside_addr));
             continue;
         }
@@ -164,7 +164,7 @@ int run_inside(struct args *args) {
 
         // send traffic to service application and update last connection
         conn_table_inside_update_last_ping(conn_tbl, sock);
-        printf("sending to service application %s:%d\n", inet_ntoa(service_addr.sin_addr), ntohs(service_addr.sin_port));
+        //printf("sending to service application %s:%d\n", inet_ntoa(service_addr.sin_addr), ntohs(service_addr.sin_port));
         sendto(sock, buffer, bytes_recv, 0, (struct sockaddr *)&service_addr, sizeof(service_addr));
     }
   }
