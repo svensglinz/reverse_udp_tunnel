@@ -28,6 +28,7 @@ static struct conn_table_inside *conn_tbl;
 static int epollfd;
 static struct sockaddr_in service_addr;
 pthread_mutex_t lock;
+static int mac_seq = 0;
 
 // creates a new non-blocking socket and adds it to
 // the epoll instance referred to by `epollfd`
@@ -157,7 +158,7 @@ int run_inside(struct args *args) {
 
             // create new free tunnel and send out ping message
             conn_tbl->free_tunnel = create_and_register_client_socket(epollfd);
-            gen_mac(&mac, prog_args->secret);
+            gen_mac(&mac, prog_args->secret, mac_seq++);
             sendto(conn_tbl->free_tunnel, &mac, sizeof(mac), 0, (struct sockaddr *)&outside_addr, sizeof(outside_addr));
             LOG(DEBUG, "creating a new spare tunnel");
         }
@@ -176,26 +177,28 @@ int run_inside(struct args *args) {
 
 // send periodic keepalives to all active tunnels + spare one
 void *send_keepalive(void *args) {
+
   struct mac_t mac;
   int r;
+
   while (1) {
     hashmap_t *map = conn_tbl->fd_to_time;
 
     // first ping current free element
-    gen_mac(&mac, prog_args->secret);
+    gen_mac(&mac, prog_args->secret, mac_seq);
     sendto(conn_tbl->free_tunnel, &mac, sizeof(mac), 0, (struct sockaddr *)&outside_addr, sizeof(outside_addr));
     //printf("sending to %d\n", conn_tbl->free_tunnel);
 
     // put in external function
     // send packages to all active connections
     struct map_fd_time *t;
+
     HASHMAP_FOREACH(map, t) {
       int fd = t->key;
-      gen_mac(&mac, prog_args->secret);
+      gen_mac(&mac, prog_args->secret, mac_seq); // send all pings with same sequence number
       sendto(fd, &mac, sizeof(mac), 0, (struct sockaddr *)&outside_addr, sizeof(outside_addr));
-      usleep(100*1000);
     }
-
+    mac_seq++;
     // effectively ~ keepalive_timeout + 50ms * #connections (assumed negligible here for reasonable N. connections)
     sleep(prog_args->keepalive_timeout);
   }

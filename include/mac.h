@@ -11,6 +11,6 @@ struct mac_t {
 };
 
 int verify_mac(const struct mac_t* msg, const char* secret) ;
-void gen_mac(struct mac_t *mac, const char *secret);
+void gen_mac(struct mac_t *mac, const char *secret, int seq);
 
 #endif
