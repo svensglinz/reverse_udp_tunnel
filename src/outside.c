@@ -73,10 +73,9 @@ int run_outside(const struct args* args) {
         if (bytes_recv == LEN_KEEPALIVE_MAC && strncmp(((struct mac_t *)buffer)->check, "KAS", 3) == 0) {
             if (!verify_mac((const struct mac_t*)buffer, args->secret)) {
                 LOG(DEBUG, "received unverifiable keepalive signal from %s:%d", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
-                goto unlock;
-            }
-            // check if this is a new free tunnel
-            if (!conn_table_is_tunnel(conn_tbl, &client_addr)) {
+                // check if this is a new free tunnel
+
+            } else if (!conn_table_is_tunnel(conn_tbl, &client_addr)) {
 
                 // add this connection as a spare tunnel
                 // only 1 free tunnel can exist at a time
@@ -84,7 +83,6 @@ int run_outside(const struct args* args) {
                 //conn_tbale_add_free_tunnel(conn_tbl, &client_addr);
                 conn_tbl->free_tunnel = client_addr;
                 conn_tbl->has_free = 1;
-
             } else {
                 // keepalive is from a tunnel that is currently active (ie. associated with a client)
                 // update last ping time
@@ -107,7 +105,7 @@ int run_outside(const struct args* args) {
         // outside traffic from client and we have an established tunnel
         // forward the traffic into the tunnel
         if ((conn = conn_table_get_tunnel_for_client(conn_tbl, &client_addr))) {
-            printf("sending into tunnel\n");
+            printf("sending into tunnel %s:%d\n", inet_ntoa(conn->sin_addr), ntohs(conn->sin_port));
             sendto(outside_sock, buffer, bytes_recv, 0, (struct sockaddr *)conn, sizeof(*conn));
         }
         unlock:
