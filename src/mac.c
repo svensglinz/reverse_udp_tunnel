@@ -4,6 +4,7 @@
 #include <string.h>
 #include "mac.h"
 #include <stdio.h>
+#include <stdatomic.h>
 
 int verify_mac(const struct mac_t* msg, const char* secret) {
 
@@ -30,18 +31,10 @@ int verify_mac(const struct mac_t* msg, const char* secret) {
     return memcmp(hash, msg->hash, 32) == 0 ? 1 : 0;
 }
 
-void gen_mac(struct mac_t *mac, const char *secret, int seq) {
+void gen_mac(struct mac_t *mac, const char *secret, int nonce) {
 
-    static int seq_cur = 0;
-    static uint64_t nonce = 1;
     size_t secret_len = strlen(secret);
     char msg[secret_len + sizeof(nonce)];
-
-    // only increase nonce with a new ping sequence batch
-    if (seq > seq_cur) {
-        seq_cur = seq;
-        nonce++;
-    }
 
     memcpy(msg, secret, secret_len);
     memcpy(msg + secret_len, &nonce, sizeof(nonce));

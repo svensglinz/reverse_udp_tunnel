@@ -28,7 +28,7 @@ static struct conn_table_inside *conn_tbl;
 static int epollfd;
 static struct sockaddr_in service_addr;
 pthread_mutex_t lock;
-static int mac_seq = 0;
+static int nonce = 0;
 
 // creates a new non-blocking socket and adds it to
 // the epoll instance referred to by `epollfd`
@@ -157,7 +157,7 @@ int run_inside(struct args *args) {
 
             // create new free tunnel and send out ping message
             conn_tbl->free_tunnel = create_and_register_client_socket(epollfd);
-            gen_mac(&mac, prog_args->secret, mac_seq++);
+            gen_mac(&mac, prog_args->secret, nonce);
             sendto(conn_tbl->free_tunnel, &mac, sizeof(mac), 0, (struct sockaddr *)&outside_addr, sizeof(outside_addr));
             LOG(DEBUG, "creating a new spare tunnel");
         }
@@ -186,7 +186,7 @@ void *send_keepalive(void *args) {
     pthread_mutex_lock(&lock);
 
     // first ping current free element
-    gen_mac(&mac, prog_args->secret, mac_seq);
+    gen_mac(&mac, prog_args->secret, nonce);
     sendto(conn_tbl->free_tunnel, &mac, sizeof(mac), 0, (struct sockaddr *)&outside_addr, sizeof(outside_addr));
     //printf("sending to %d\n", conn_tbl->free_tunnel);
 
@@ -207,26 +207,23 @@ void *send_keepalive(void *args) {
      */
     HASHMAP_FOREACH(map, t) {
       int fd = t->key;
-      gen_mac(&mac, prog_args->secret, mac_seq); // send all pings with same sequence number
+      gen_mac(&mac, prog_args->secret, nonce); // send all pings with same sequence number
       sendto(fd, &mac, sizeof(mac), 0, (struct sockaddr *)&outside_addr, sizeof(outside_addr));
     }
-
-    mac_seq++;
+    nonce++;
     // effectively ~ keepalive_timeout + 50ms * #connections (assumed negligible here for reasonable N. connections)
     pthread_mutex_unlock(&lock);
-    sleep(30);
+    sleep(prog_args->keepalive_timeout);
   }
 }
 
 // periodically close unused tunnels
 void *cleanup(void *args) {
-  /*
   while (1) {
     pthread_mutex_lock(&lock);
     conn_table_inside_clean(conn_tbl, epollfd, prog_args->udp_timeout);
     pthread_mutex_unlock(&lock);
-    sleep(60); // max 20% error tolerance
+    sleep(prog_args->udp_timeout); // max 20% error tolerance
   }
-*/
    return NULL;
 }
