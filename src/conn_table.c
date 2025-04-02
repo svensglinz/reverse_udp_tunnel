@@ -73,11 +73,20 @@ struct conn_table* conn_table_init(int max_elem) {
         .cleanup_fun = NULL
     };
 
-    struct conn_table *tbl = calloc(sizeof(struct conn_table), 1);
+    struct hashmap_params paramsPending = {
+        .obj_size = sizeof(struct sockaddr_in),
+        .cmp_fun = cmp_sockaddr_in,
+        .hash_fun = hash_sockaddr_in,
+        .cleanup_fun = NULL
+    };
+
+    conntable_t *tbl = calloc(sizeof(struct conn_table), 1);
     hashmap_t *tunnel_to_client = hashmap_init(16, &params);
     hashmap_t *client_to_tunnel = hashmap_init(16, &params);
+    hashmap_t *pending = hashmap_init(16, &paramsPending);
     tbl->tunnel_to_client = tunnel_to_client;
     tbl->client_to_tunnel = client_to_tunnel;
+    tbl->pending = pending;
     tbl->has_free = 0;
     tbl->n_elem = 0;
     tbl->max_elem = max_elem;
@@ -85,7 +94,7 @@ struct conn_table* conn_table_init(int max_elem) {
     return tbl;
 }
 
-struct sockaddr_in* conn_table_get_client_for_tunnel(struct conn_table *tbl, struct sockaddr_in *tunnel) {
+struct sockaddr_in* conn_table_get_client_for_tunnel(conntable_t *tbl, struct sockaddr_in *tunnel) {
 
     void* elem = hashmap_get(tbl->tunnel_to_client, tunnel);
     if (elem == NULL) return NULL;
@@ -100,10 +109,12 @@ struct conn_table_inside* conn_table_inside_init() {
     struct hashmap_params params = {
         .obj_size = sizeof(struct map_fd_time),
         .cmp_fun = cmp_int,
-        .hash_fun = hash_int
+        .hash_fun = hash_int,
+        .cleanup_fun = NULL
+
     };
     hashmap_t *fd_to_time = hashmap_init(16, &params);
-    struct conn_table_inside *tbl = malloc(sizeof(struct conn_table_inside));
+    conntable_inside_t *tbl = malloc(sizeof(struct conn_table_inside));
 
     tbl->fd_to_time = fd_to_time;
     tbl->free_tunnel = 0;
@@ -111,7 +122,7 @@ struct conn_table_inside* conn_table_inside_init() {
     return tbl;
 }
 
-void conn_table_inside_add_fd(struct conn_table_inside *tbl, int fd) {
+void conn_table_inside_add_fd(conntable_inside_t *tbl, int fd) {
     struct map_fd_time s = {
         .key = fd,
         .val = get_seconds()
@@ -121,18 +132,51 @@ void conn_table_inside_add_fd(struct conn_table_inside *tbl, int fd) {
 }
 
 
-struct sockaddr_in* conn_table_get_tunnel_for_client(struct conn_table *tbl, struct sockaddr_in *client) {
+struct sockaddr_in* conn_table_get_tunnel_for_client(conntable_t *tbl, struct sockaddr_in *client) {
 
     void* elem = hashmap_get(tbl->client_to_tunnel, client);
-    if (elem == NULL) return NULL;
-    return &((struct map_addr_pair *)elem)->value;
+
+    if (elem != NULL) {
+      return &((struct map_addr_pair *)elem)->value;
+    }
+
+    // first connection. Register spare tunnel with client
+    if (tbl->has_free == 0 || tbl->n_elem >= tbl->max_elem) {
+      // first time device attempts connection
+      if (hashmap_get(tbl->pending, client) != NULL) {
+          LOG(INFO_2, "Could not establish connection for %s:%d. No free tunnel available", inet_ntoa(client->sin_addr), ntohs(client->sin_port));
+          LOG(INFO_2, "This error will not be repeated");
+      }
+      return NULL;
+    }
+
+    // register
+    // remove connection from pending list
+    hashmap_remove(tbl->pending, client);
+    LOG(INFO_2, "allocating spare tunnel for connection %s:%d", inet_ntoa(client->sin_addr), ntohs(client->sin_port));
+
+    struct map_addr_pair a = {
+       .key = *client,
+       .value = tbl->free_tunnel,
+       // last activity not needed
+       // only measured for pings from inside
+   };
+
+   struct map_addr_pair b = {
+       .key = tbl->free_tunnel,
+       .value = *client,
+       .last_activity = get_seconds()
+   };
+
+   hashmap_insert(tbl->client_to_tunnel, &a);
+   hashnode_t *n = hashmap_insert(tbl->tunnel_to_client, &b);
+   tbl->has_free = 0;
+   tbl->n_elem++;
+
+   return &((struct map_addr_pair*)n->elem)->key;
 }
 
-int conn_table_is_tunnel(struct conn_table *tbl, struct sockaddr_in *addr) {
-
-    printf("addr is %d, %d\n", addr->sin_addr.s_addr, addr->sin_port);
-    printf("free addr is %d, %d\n", tbl->free_tunnel.sin_addr.s_addr, tbl->free_tunnel.sin_port);
-    fflush(stdout);
+int conn_table_is_tunnel(conntable_t *tbl, struct sockaddr_in *addr) {
 
     int fst = conn_table_get_client_for_tunnel(tbl, addr) != NULL;
     int snd = tbl->free_tunnel.sin_addr.s_addr == addr->sin_addr.s_addr;
@@ -141,7 +185,7 @@ int conn_table_is_tunnel(struct conn_table *tbl, struct sockaddr_in *addr) {
 }
 
 // returns the registered tunnel
-struct sockaddr_in* conn_table_register_client_with_tunnel(struct conn_table *tbl, struct sockaddr_in *client) {
+struct sockaddr_in* conn_table_register_client_with_tunnel(conntable_t *tbl, struct sockaddr_in *client) {
 
     // no free tunnel available
     if (tbl->has_free == 0 || tbl->n_elem >= tbl->max_elem) return NULL;
@@ -168,7 +212,7 @@ struct sockaddr_in* conn_table_register_client_with_tunnel(struct conn_table *tb
     return &((struct map_addr_pair*)n->elem)->key;
 }
 
-void conn_table_clean(struct conn_table *tbl, time_t max_keepalive) {
+void conn_table_clean(conntable_t *tbl, time_t max_keepalive) {
     time_t time_cur = get_seconds();
     hashmap_t *map = tbl->tunnel_to_client;
     hashmap_t *map2 = tbl->client_to_tunnel;
@@ -187,7 +231,7 @@ void conn_table_clean(struct conn_table *tbl, time_t max_keepalive) {
     }
 }
 
-void conn_table_inside_update_last_ping(struct conn_table_inside *con_tbl, int fd) {
+void conn_table_inside_update_last_ping(conntable_inside_t *con_tbl, int fd) {
     hashmap_t *map = con_tbl->fd_to_time;
     struct map_fd_time *e = hashmap_get(map, &fd);
     if (e != NULL) {
@@ -195,7 +239,7 @@ void conn_table_inside_update_last_ping(struct conn_table_inside *con_tbl, int f
     }
 }
 
-void conn_table_inside_clean(struct conn_table_inside *tbl, int epoll_fd, time_t max_keepalive) {
+void conn_table_inside_clean(conntable_inside_t *tbl, int epoll_fd, time_t max_keepalive) {
 
     hashmap_t *map = tbl->fd_to_time;
 
@@ -218,7 +262,7 @@ void conn_table_inside_clean(struct conn_table_inside *tbl, int epoll_fd, time_t
     }
 }
 
-void conn_table_update_last_ping(struct conn_table *tbl, struct sockaddr_in *addr) {
+void conn_table_update_last_ping(conntable_t *tbl, struct sockaddr_in *addr) {
     struct map_addr_pair *elem = hashmap_get(tbl->tunnel_to_client, addr);
     // null -> ping from spare connection
     if (elem != NULL) {

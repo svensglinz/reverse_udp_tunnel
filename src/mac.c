@@ -23,7 +23,6 @@ int verify_mac(const struct mac_t* msg, const char* secret) {
 
     if (nonce > msg->nonce) return 0;
     nonce = msg->nonce;
-    int cmp = memcmp(hash, msg->hash, 32);
     return memcmp(hash, msg->hash, 32) == 0 ? 1 : 0;
 }
 

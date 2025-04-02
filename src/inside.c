@@ -141,10 +141,10 @@ int run_inside(struct args *args) {
           continue;
         }
 
-        printf("traffic from %s, %d\n", inet_ntoa(client.sin_addr), ntohs(client.sin_port));
+        //printf("traffic from %s, %d\n", inet_ntoa(client.sin_addr), ntohs(client.sin_port));
         // return traffic from inside service. Return to outside connection
         if (client.sin_addr.s_addr == service_addr.sin_addr.s_addr && client.sin_port == service_addr.sin_port) {
-          printf("sendint to outside\n");
+          //printf("sendint to outside\n");
             sendto(sock, buffer, bytes_recv, 0, (const struct sockaddr *)&outside_addr, sizeof(outside_addr));
             continue;
         }
@@ -164,7 +164,7 @@ int run_inside(struct args *args) {
 
         // send traffic to service application and update last connection
         conn_table_inside_update_last_ping(conn_tbl, sock);
-        printf("sending to service application %s:%d\n", inet_ntoa(service_addr.sin_addr), ntohs(service_addr.sin_port));
+        //printf("sending to service application %s:%d\n", inet_ntoa(service_addr.sin_addr), ntohs(service_addr.sin_port));
         sendto(sock, buffer, bytes_recv, 0, (struct sockaddr *)&service_addr, sizeof(service_addr));
     }
   }
@@ -184,14 +184,13 @@ void *send_keepalive(void *args) {
     // first ping current free element
     gen_mac(&mac, prog_args->secret);
     sendto(conn_tbl->free_tunnel, &mac, sizeof(mac), 0, (struct sockaddr *)&outside_addr, sizeof(outside_addr));
-    printf("sending to %d\n", conn_tbl->free_tunnel);
+    //printf("sending to %d\n", conn_tbl->free_tunnel);
 
     // put in external function
     // send packages to all active connections
     struct map_fd_time *t;
     HASHMAP_FOREACH(map, t) {
       int fd = t->key;
-      printf("sending to %d\n", fd);
       gen_mac(&mac, prog_args->secret);
       sendto(fd, &mac, sizeof(mac), 0, (struct sockaddr *)&outside_addr, sizeof(outside_addr));
       usleep(100*1000);

@@ -99,7 +99,7 @@ int run_outside(const struct args* args) {
         // traffic is from an established tunnel from the inside
         // send traffic back to the associated client
         if ((conn = conn_table_get_client_for_tunnel(conn_tbl, &client_addr))) {
-            printf("sending back to client\n");
+            //printf("sending back to client\n");
             sendto(outside_sock, buffer, bytes_recv, 0, (struct sockaddr *)conn, sizeof(*conn));
             goto unlock;
         }
@@ -109,18 +109,7 @@ int run_outside(const struct args* args) {
         if ((conn = conn_table_get_tunnel_for_client(conn_tbl, &client_addr))) {
             //printf("sending into tunnel\n");
             sendto(outside_sock, buffer, bytes_recv, 0, (struct sockaddr *)conn, sizeof(*conn));
-            goto unlock;
         }
-
-        // traffic is from an unknown client
-        // register a new tunnel and forward to the inside
-        if ((conn = conn_table_register_client_with_tunnel(conn_tbl, &client_addr))) {
-            LOG(INFO_2, "allocating spare tunnel for connection %s:%d", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
-            sendto(outside_sock, buffer, bytes_recv, 0, (struct sockaddr *)conn, sizeof(conn));
-        } else {
-            LOG(INFO_2, "Could not establish connection for %s:%d. No free tunnel available", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
-        }
-
         unlock:
         pthread_mutex_unlock(&lock);
     }
