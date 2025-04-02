@@ -242,15 +242,14 @@ void conn_table_inside_update_last_ping(conntable_inside_t *con_tbl, int fd) {
 
 void conn_table_inside_clean(conntable_inside_t *tbl, int epoll_fd, time_t max_keepalive) {
 
-    hashmap_t *map = tbl->fd_to_time;
-
-    // if map elems = 0, return immediately
+   // if map elems = 0, return immediately
     if (map->n_elem == 0) return;
     time_t time_cur = get_seconds();
-    struct hash_node *next;
+
+    hashmap_t *map = tbl->fd_to_time;
+    struct map_fd_time *s;
 
     // iterate over elements and remove if needed
-    struct map_fd_time *s;
     HASHMAP_FOREACH(map, s) {
         if (time_cur - s->val >= max_keepalive) {
             epoll_ctl(epoll_fd, EPOLL_CTL_DEL, s->key, NULL);
